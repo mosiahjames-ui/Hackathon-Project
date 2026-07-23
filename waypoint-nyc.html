@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waypoint — NYC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --ink-bg: #0F1E1B;
+    --surface: #1A2F2A;
+    --surface-2: #234038;
+    --paper: #F1E9D8;
+    --text: #EAF2EE;
+    --text-dim: #9FB5AE;
+    --brass: #C9A227;
+    --brass-dim: #8C7220;
+    --sky: #6FA8C7;
+    --heat: #E2725B;
+    --line: rgba(234,242,238,0.12);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--ink-bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height:100vh;
+  }
+  .wrap{ max-width: 780px; margin: 0 auto; padding: 24px 18px 80px; }
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px; margin-bottom: 18px; gap: 14px; flex-wrap: wrap;
+  }
+  .brand{ font-family:'Fraunces', serif; font-size: 26px; font-weight:600; letter-spacing:-0.01em; display:flex; align-items:baseline; gap:9px; }
+  .brand .mark{ color: var(--brass); font-size: 18px; }
+  .brand .sub{ font-family:'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; display:block; margin-top:2px; }
+
+  .lang-toggle{ display:flex; gap:4px; }
+  .lang-toggle button{
+    background: var(--surface); border: 1px solid var(--line); color: var(--text-dim);
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; font-weight:600;
+    padding: 5px 9px; border-radius: 6px; cursor:pointer;
+  }
+  .lang-toggle button.active{ background: var(--brass); color: var(--ink-bg); border-color: var(--brass); }
+  .lang-toggle button:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+
+  .loc-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .loc-status{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); }
+  .loc-status .val{ color: var(--brass); }
+  .loc-status .err{ color: var(--heat); }
+  .btn-row{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .btn-row button{
+    background: none; border: 1px solid var(--brass-dim); color: var(--brass);
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor:pointer;
+  }
+  .btn-row button:hover{ background: rgba(201,162,39,0.1); }
+  .btn-row button:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+  .manual-entry{ display:none; gap: 6px; margin-top: 8px; }
+  .manual-entry.show{ display:flex; }
+  .manual-entry input{
+    background: var(--surface); border: 1px solid var(--line); color: var(--text);
+    font-family:'IBM Plex Sans', sans-serif; font-size: 12.5px; padding: 6px 10px; border-radius: 6px; width: 220px;
+  }
+  .manual-entry input::placeholder{ color: var(--text-dim); }
+  .manual-entry button{
+    background: var(--brass); color: var(--ink-bg); border:none;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600;
+    padding: 6px 10px; border-radius:6px; cursor:pointer;
+  }
+  .banner{
+    display:none; align-items:center; justify-content:space-between; gap:10px;
+    background: var(--surface-2); border: 1px solid var(--brass-dim); border-radius: 10px;
+    padding: 8px 12px; margin-bottom:14px; font-family:'IBM Plex Mono', monospace; font-size:12px;
+  }
+  .banner.show{ display:flex; }
+  .banner button{
+    background: var(--brass); color: var(--ink-bg); border:none; font-weight:600;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:5px 9px; border-radius:6px; cursor:pointer;
+  }
+
+  .weather-now{
+    display:flex; gap: 18px; align-items:center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 16px;
+  }
+  .weather-now .icon{ font-size: 42px; line-height:1; }
+  .weather-now .temp{ font-family:'Fraunces', serif; font-size: 36px; font-weight:600; }
+  .weather-now .cond{ color: var(--text-dim); font-size: 13px; margin-top: 2px;}
+  .weather-now .meta{ margin-left:auto; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-dim); }
+
+  .week-strip{ display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
+  .day-chip{
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 3px; text-align:center; cursor:pointer; font-family:'IBM Plex Mono', monospace;
+  }
+  .day-chip:hover{ border-color: var(--brass-dim); }
+  .day-chip.active{ background: var(--surface-2); border-color: var(--brass); }
+  .day-chip .dname{ font-size:9.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; }
+  .day-chip .dicon{ font-size:17px; margin:4px 0; }
+  .day-chip .dtemp{ font-size:11.5px; }
+  .day-chip.today .dname{ color: var(--brass); }
+  .day-chip:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+
+  .filters{
+    display:flex; gap:16px; flex-wrap:wrap; align-items:center;
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 18px;
+  }
+  .filter-group{ display:flex; flex-direction:column; gap:6px; }
+  .filter-group .fg-label{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.1em; color: var(--text-dim);
+  }
+  .chip-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text-dim);
+    font-family:'IBM Plex Mono', monospace; font-size: 11.5px; padding: 6px 11px;
+    border-radius: 20px; cursor:pointer; user-select:none;
+  }
+  .chip.active{ background: var(--brass); color: var(--ink-bg); border-color: var(--brass); font-weight:600; }
+  .chip:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+  .radius-toggle{ display:flex; gap:4px; margin-left:auto; }
+  .radius-toggle button{
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text-dim);
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor:pointer;
+  }
+  .radius-toggle button.active{ background: var(--brass); color: var(--ink-bg); border-color: var(--brass); font-weight:600;}
+  .radius-toggle button:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+
+  .map-section{ margin-bottom: 24px; }
+  .map-label{
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform:uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .map-label .recenter-btn{
+    background: var(--surface); border: 1px solid var(--brass-dim); color: var(--brass);
+    font-family:'IBM Plex Mono', monospace; font-size: 10.5px; padding: 4px 9px; border-radius: 6px; cursor:pointer;
+  }
+  #mapWrap{
+    height: 340px; border-radius: var(--radius); overflow:hidden; border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .leaflet-popup-content-wrapper{ background: var(--paper); color:#1B2A28; border-radius:8px; }
+  .leaflet-popup-content{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; }
+  .leaflet-popup-tip{ background: var(--paper); }
+  .map-pin-day{ background:#3F8F5E; }
+  .map-pin-night{ background:#5C5FC4; }
+  .map-pin-attraction{ background:#C9A227; }
+  .map-pin{
+    width:22px; height:22px; border-radius:50% 50% 50% 0; transform: rotate(-45deg);
+    display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    border: 1.5px solid rgba(255,255,255,0.6);
+  }
+  .map-pin span{ transform: rotate(45deg); font-size:11px; }
+  .user-dot{
+    width:16px; height:16px; border-radius:50%; background:#6FA8C7; border:3px solid #EAF2EE;
+    box-shadow: 0 0 0 4px rgba(111,168,199,0.25);
+  }
+
+  .list-label{ font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform:uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin: 22px 0 10px; }
+  .activity-card{
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 15px; margin-bottom: 9px; display:flex; gap: 13px; align-items:flex-start;
+  }
+  .activity-card .a-icon{
+    font-size: 22px; width: 38px; height:38px; display:flex; align-items:center; justify-content:center;
+    background: var(--surface-2); border-radius: 8px; flex-shrink:0;
+  }
+  .activity-card .a-body{ flex:1; min-width:0; }
+  .activity-card .a-name{ font-family:'Fraunces', serif; font-size: 16.5px; font-weight:600; }
+  .activity-card .a-cat{ color: var(--text-dim); font-size: 12.5px; margin-top:2px; }
+  .activity-card .a-tags{ margin-top: 7px; display:flex; gap:6px; flex-wrap:wrap; }
+  .tag{ font-family:'IBM Plex Mono', monospace; font-size: 9.5px; padding: 3px 7px; border-radius: 20px; text-transform:uppercase; letter-spacing:0.05em; }
+  .tag.good{ background: rgba(111,168,80,0.18); color:#9BD17A; }
+  .tag.ok{ background: rgba(111,168,199,0.18); color: var(--sky); }
+  .tag.caution{ background: rgba(226,114,91,0.18); color: var(--heat); }
+  .tag.bucket-day{ background: rgba(63,143,94,0.18); color:#7FD19C; }
+  .tag.bucket-night{ background: rgba(92,95,196,0.2); color:#A6A8F0; }
+  .tag.bucket-attraction{ background: rgba(201,162,39,0.18); color: var(--brass); }
+  .a-dist{ font-family:'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--brass); text-align:right; flex-shrink:0; white-space:nowrap; }
+  .a-dist small{ display:block; color:var(--text-dim); font-size:10px; margin-top:2px;}
+
+  .empty, .loading, .error{
+    font-family:'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); text-align:center;
+    padding: 26px 16px; background: var(--surface); border-radius: var(--radius); border: 1px dashed var(--line);
+  }
+  .error{ color: var(--heat); }
+
+  footer{ text-align:center; font-family:'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-dim); margin-top: 26px; }
+
+  @media (max-width: 480px){
+    .weather-now{ flex-wrap:wrap; } .weather-now .meta{ margin-left:0; text-align:left; }
+    .filters{ flex-direction:column; align-items:stretch; }
+    .radius-toggle{ margin-left:0; }
+    #mapWrap{ height:280px; }
+  }
+  @media (prefers-reduced-motion: reduce){ * { transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <span class="mark">◈</span>
+      <div>Waypoint<span class="sub" id="brandSub">today, within reach — NYC</span></div>
+    </div>
+    <div class="lang-toggle" id="langToggle">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="es">ES</button>
+      <button data-lang="fr">FR</button>
+    </div>
+  </header>
+
+  <div class="loc-row">
+    <div class="loc-status" id="locStatus">Locating…</div>
+    <div>
+      <div class="btn-row">
+        <button id="locateBtn" data-i="useLocation">Use my location</button>
+        <button id="manualBtn" data-i="enterManually">Enter manually</button>
+        <button id="demoBtn" data-i="viewDemo">View demo</button>
+      </div>
+      <div class="manual-entry" id="manualEntry">
+        <input id="manQuery" data-i-placeholder="addressPlaceholder" placeholder="Address or landmark in NYC">
+        <button id="manualGo" data-i="go">Go</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner" id="moveBanner">
+    <span data-i="movedBanner">Your location changed.</span>
+    <button id="refreshBtn" data-i="refresh">Refresh nearby</button>
+  </div>
+
+  <div id="weatherNow" class="weather-now"><div class="loading" data-i="readingSky">Reading the sky…</div></div>
+
+  <div id="weekStrip" class="week-strip"></div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <span class="fg-label" data-i="whenLabel">When</span>
+      <div class="chip-row" id="bucketFilters">
+        <span class="chip active" data-bucket="day" data-i="bucketDay">Day</span>
+        <span class="chip active" data-bucket="night" data-i="bucketNight">Night</span>
+        <span class="chip active" data-bucket="attraction" data-i="bucketAttraction">Attractions</span>
+      </div>
+    </div>
+    <div class="radius-toggle" id="radiusToggle">
+      <button data-mi="1">1 mi</button>
+      <button data-mi="3">3 mi</button>
+      <button data-mi="5" class="active">5 mi</button>
+    </div>
+  </div>
+
+  <div class="map-section">
+    <div class="map-label">
+      <span data-i="mapLabel">Live map — synced to your location</span>
+      <button class="recenter-btn" id="recenterBtn" data-i="recenter">Recenter</button>
+    </div>
+    <div id="mapWrap"><div id="leafletMap" style="height:100%;"></div></div>
+  </div>
+
+  <div class="list-label" id="listLabel" data-i="recommendedToday">Recommended for today</div>
+  <div id="activityList"><div class="loading" data-i="scouting">Scouting the area…</div></div>
+
+  <footer id="footerNote">Weather via Open-Meteo · Places via OpenStreetMap · Scoped to NYC's five boroughs · Search capped at 5 mi (8 km)</footer>
+</div>
+
+<script>
+/* ================= Config & constants ================= */
+const MAX_RADIUS_MI = 5; // hard cap
+const NYC_BBOX = { minLat: 40.4957, maxLat: 40.9153, minLng: -74.2557, maxLng: -73.7002 };
+const DEMO_LOCATION = { lat: 40.7580, lng: -73.9855, label: 'Times Square, Manhattan' }; // demo fallback, always inside NYC
+
+const BUCKET_TAGS = {
+  day: ['leisure=park','tourism=viewpoint','natural=beach','tourism=artwork','tourism=zoo'],
+  night: ['amenity=theatre','amenity=cinema','amenity=bar','amenity=nightclub'],
+  attraction: ['tourism=museum','tourism=gallery','tourism=attraction','tourism=aquarium']
+};
+const CATEGORY_TO_BUCKET = {
+  park:'day', viewpoint:'day', beach:'day', artwork:'day', zoo:'day',
+  theatre:'night', cinema:'night', bar:'night', nightclub:'night',
+  museum:'attraction', gallery:'attraction', attraction:'attraction', aquarium:'attraction'
+};
+const BUCKET_ICON = { day:'🌤️', night:'🌙', attraction:'🏛️' };
+
+/* ================= i18n ================= */
+const I18N = {
+  en: {
+    brandSub:'today, within reach — NYC', locating:'Locating…', useLocation:'Use my location',
+    enterManually:'Enter manually', viewDemo:'View demo', go:'Go', located:'Located',
+    denied:'Location denied — enter an address or view demo', outsideNyc:'Outside NYC — showing demo location (Times Square)',
+    addressPlaceholder:'Address or landmark in NYC', findingPlace:'Finding that place…',
+    notFound:'Couldn\'t find that in NYC. Try a nearby landmark or a fuller address.',
+    resolvingLocation:'Finding your neighborhood…', currentLocationFallback:'Current location',
+    readingSky:'Reading the sky…', scouting:'Scouting the area…', updatedNow:'Updated just now',
+    mapLabel:'Live map — synced to your location', recenter:'Recenter',
+    recommendedToday:'Recommended for today', goodCall:'Good call today', exposed:'Exposed — weather risk',
+    workable:'Workable today', veryHot:'Very hot outdoors',
+    whenLabel:'When', bucketDay:'Day', bucketNight:'Night', bucketAttraction:'Attractions',
+    emptyList:'Nothing found for these filters within range. Try widening filters or radius.',
+    errorWeather:'Couldn\'t load weather. Check your connection and try again.',
+    errorPlaces:'Couldn\'t load nearby places. Check your connection and try again.',
+    movedBanner:'Your location changed.', refresh:'Refresh nearby',
+    footerNote:'Weather via Open-Meteo · Places via OpenStreetMap · Scoped to NYC\'s five boroughs · Search capped at 5 mi (8 km)',
+    wx:{clearSky:'Clear sky',mostlyClear:'Mostly clear',overcast:'Overcast',fog:'Fog',drizzle:'Drizzle',rain:'Rain',snow:'Snow',showers:'Showers',thunderstorm:'Thunderstorm',mixed:'Mixed'},
+    cat:{museum:'Museum',gallery:'Gallery',viewpoint:'Viewpoint',park:'Park',attraction:'Attraction',artwork:'Public Art',zoo:'Zoo',beach:'Beach',aquarium:'Aquarium',theatre:'Theatre',cinema:'Cinema',bar:'Bar',nightclub:'Nightclub'},
+    locale:'en-US'
+  },
+  es: {
+    brandSub:'hoy, a tu alcance — NYC', locating:'Ubicando…', useLocation:'Usar mi ubicación',
+    enterManually:'Ingresar manualmente', viewDemo:'Ver demo', go:'Ir', located:'Ubicado',
+    denied:'Ubicación denegada — ingresa una dirección o mira la demo', outsideNyc:'Fuera de NYC — mostrando ubicación de demo (Times Square)',
+    addressPlaceholder:'Dirección o lugar en NYC', findingPlace:'Buscando ese lugar…',
+    notFound:'No se encontró eso en NYC. Prueba un lugar cercano o una dirección más completa.',
+    resolvingLocation:'Buscando tu vecindario…', currentLocationFallback:'Ubicación actual',
+    readingSky:'Leyendo el cielo…', scouting:'Explorando la zona…', updatedNow:'Actualizado ahora',
+    mapLabel:'Mapa en vivo — sincronizado con tu ubicación', recenter:'Recentrar',
+    recommendedToday:'Recomendado para hoy', goodCall:'Buena opción hoy', exposed:'Expuesto — riesgo climático',
+    workable:'Viable hoy', veryHot:'Muy caluroso al aire libre',
+    whenLabel:'Cuándo', bucketDay:'Día', bucketNight:'Noche', bucketAttraction:'Atracciones',
+    emptyList:'No se encontró nada con estos filtros en el radio. Amplía los filtros o el radio.',
+    errorWeather:'No se pudo cargar el clima. Verifica tu conexión e intenta de nuevo.',
+    errorPlaces:'No se pudieron cargar los lugares cercanos. Verifica tu conexión e intenta de nuevo.',
+    movedBanner:'Tu ubicación cambió.', refresh:'Actualizar cercanos',
+    footerNote:'Clima vía Open-Meteo · Lugares vía OpenStreetMap · Limitado a los cinco distritos de NYC · Búsqueda máx. 5 mi (8 km)',
+    wx:{clearSky:'Cielo despejado',mostlyClear:'Mayormente despejado',overcast:'Nublado',fog:'Niebla',drizzle:'Llovizna',rain:'Lluvia',snow:'Nieve',showers:'Chubascos',thunderstorm:'Tormenta',mixed:'Variable'},
+    cat:{museum:'Museo',gallery:'Galería',viewpoint:'Mirador',park:'Parque',attraction:'Atracción',artwork:'Arte Público',zoo:'Zoológico',beach:'Playa',aquarium:'Acuario',theatre:'Teatro',cinema:'Cine',bar:'Bar',nightclub:'Club Nocturno'},
+    locale:'es-ES'
+  },
+  fr: {
+    brandSub:'aujourd\'hui, à portée — NYC', locating:'Localisation…', useLocation:'Utiliser ma position',
+    enterManually:'Saisir manuellement', viewDemo:'Voir la démo', go:'Aller', located:'Localisé',
+    denied:'Position refusée — saisissez une adresse ou voyez la démo', outsideNyc:'Hors de NYC — position de démo affichée (Times Square)',
+    addressPlaceholder:'Adresse ou lieu à NYC', findingPlace:'Recherche du lieu…',
+    notFound:'Introuvable à NYC. Essayez un lieu proche ou une adresse plus complète.',
+    resolvingLocation:'Recherche de votre quartier…', currentLocationFallback:'Position actuelle',
+    readingSky:'Lecture du ciel…', scouting:'Exploration des environs…', updatedNow:'Mis à jour à l\'instant',
+    mapLabel:'Carte en direct — synchronisée à votre position', recenter:'Recentrer',
+    recommendedToday:'Recommandé pour aujourd\'hui', goodCall:'Bon choix aujourd\'hui', exposed:'Exposé — risque météo',
+    workable:'Envisageable aujourd\'hui', veryHot:'Très chaud en extérieur',
+    whenLabel:'Quand', bucketDay:'Jour', bucketNight:'Nuit', bucketAttraction:'Attractions',
+    emptyList:'Rien trouvé pour ces filtres dans le rayon. Élargissez les filtres ou le rayon.',
+    errorWeather:'Impossible de charger la météo. Vérifiez votre connexion et réessayez.',
+    errorPlaces:'Impossible de charger les lieux à proximité. Vérifiez votre connexion et réessayez.',
+    movedBanner:'Votre position a changé.', refresh:'Actualiser les environs',
+    footerNote:'Météo via Open-Meteo · Lieux via OpenStreetMap · Limité aux cinq arrondissements de NYC · Recherche plafonnée à 5 mi (8 km)',
+    wx:{clearSky:'Ciel dégagé',mostlyClear:'Plutôt dégagé',overcast:'Couvert',fog:'Brouillard',drizzle:'Bruine',rain:'Pluie',snow:'Neige',showers:'Averses',thunderstorm:'Orage',mixed:'Variable'},
+    cat:{museum:'Musée',gallery:'Galerie',viewpoint:'Point de vue',park:'Parc',attraction:'Attraction',artwork:'Art public',zoo:'Zoo',beach:'Plage',aquarium:'Aquarium',theatre:'Théâtre',cinema:'Cinéma',bar:'Bar',nightclub:'Boîte de nuit'},
+    locale:'fr-FR'
+  }
+};
+
+let state = {
+  lang: 'en',
+  lat: null, lng: null,
+  radiusMi: 5,
+  activeBuckets: new Set(['day','night','attraction']),
+  weather: null,
+  locationLabel: null,
+  selectedDayIdx: 0,
+  places: [],
+  lastFetchLat: null, lastFetchLng: null,
+  map: null, userMarker: null, radiusCircle: null, placeMarkers: [],
+  watchId: null,
+};
+
+const $ = (id) => document.getElementById(id);
+function t(key){ return I18N[state.lang][key]; }
+
+/* ================= Geo helpers ================= */
+function inNYC(lat, lng){
+  return lat >= NYC_BBOX.minLat && lat <= NYC_BBOX.maxLat && lng >= NYC_BBOX.minLng && lng <= NYC_BBOX.maxLng;
+}
+function haversineMi(lat1, lon1, lat2, lon2){
+  const R = 3958.8;
+  const dLat = (lat2-lat1) * Math.PI/180, dLon = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function bearingLabel(lat1, lon1, lat2, lon2){
+  const toRad = d => d*Math.PI/180, toDeg = r => r*180/Math.PI;
+  const y = Math.sin(toRad(lon2-lon1)) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1))*Math.sin(toRad(lat2)) - Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(toRad(lon2-lon1));
+  const deg = (toDeg(Math.atan2(y,x)) + 360) % 360;
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg/45) % 8];
+}
+
+/* ================= Weather meta ================= */
+function weatherMeta(code){
+  if (code === 0) return {icon:'☀️', key:'clearSky', bucket:'clear'};
+  if ([1,2].includes(code)) return {icon:'🌤️', key:'mostlyClear', bucket:'clear'};
+  if (code === 3) return {icon:'☁️', key:'overcast', bucket:'cloudy'};
+  if ([45,48].includes(code)) return {icon:'🌫️', key:'fog', bucket:'fog'};
+  if ([51,53,55,56,57].includes(code)) return {icon:'🌦️', key:'drizzle', bucket:'rain'};
+  if ([61,63,65,66,67].includes(code)) return {icon:'🌧️', key:'rain', bucket:'rain'};
+  if ([71,73,75,77].includes(code)) return {icon:'🌨️', key:'snow', bucket:'snow'};
+  if ([80,81,82].includes(code)) return {icon:'🌧️', key:'showers', bucket:'rain'};
+  if ([95,96,99].includes(code)) return {icon:'⛈️', key:'thunderstorm', bucket:'storm'};
+  return {icon:'🌡️', key:'mixed', bucket:'cloudy'};
+}
+function suitabilityFor(bucket, tempF, placeBucket){
+  const isOutdoor = placeBucket === 'day';
+  const isIndoor = placeBucket === 'night' || placeBucket === 'attraction';
+  if (bucket === 'rain' || bucket === 'storm' || bucket === 'snow'){
+    if (isIndoor) return {tag:'good', key:'goodCall'};
+    return {tag:'caution', key:'exposed'};
+  }
+  if (tempF !== null && tempF >= 90){
+    if (isOutdoor) return {tag:'caution', key:'veryHot'};
+    return {tag:'good', key:'goodCall'};
+  }
+  if (isOutdoor) return {tag:'good', key:'goodCall'};
+  return {tag:'ok', key:'workable'};
+}
+
+/* ================= Fetchers ================= */
+async function fetchWeather(lat, lng){
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto&forecast_days=7`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('weather fetch failed');
+  return res.json();
+}
+async function fetchPlaces(lat, lng, radiusMi){
+  const radiusM = Math.round(radiusMi * 1609.34);
+  const allTags = [...BUCKET_TAGS.day, ...BUCKET_TAGS.night, ...BUCKET_TAGS.attraction];
+  const clauses = allTags.map(tag => {
+    const [k,v] = tag.split('=');
+    return `node["${k}"="${v}"](around:${radiusM},${lat},${lng});`;
+  }).join('\n');
+  const query = `[out:json][timeout:20];(${clauses});out center 60;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', { method:'POST', body:'data='+encodeURIComponent(query) });
+  if (!res.ok) throw new Error('places fetch failed');
+  const data = await res.json();
+  return data.elements
+    .filter(el => el.tags && el.tags.name)
+    .map(el => {
+      const category = el.tags.tourism || el.tags.leisure || el.tags.amenity || el.tags.natural;
+      const bucket = CATEGORY_TO_BUCKET[category];
+      if (!bucket) return null; // strictly day/night/attraction only
+      return { name: el.tags.name, category, bucket, lat: el.lat, lng: el.lon };
+    })
+    .filter(Boolean);
+}
+
+/* ================= Geocoding (address/landmark <-> coordinates) ================= */
+// Nominatim (OpenStreetMap) — free, no API key. Used sparingly: once per manual search
+// and once per fresh location fetch, never on every GPS tick.
+async function geocodeQuery(query){
+  const viewbox = `${NYC_BBOX.minLng},${NYC_BBOX.maxLat},${NYC_BBOX.maxLng},${NYC_BBOX.minLat}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', New York, NY')}&viewbox=${viewbox}&bounded=1&limit=1`;
+  const res = await fetch(url, { headers: { 'Accept-Language': state.lang } });
+  if (!res.ok) throw new Error('geocode failed');
+  const results = await res.json();
+  if (!results.length) return null;
+  const r = results[0];
+  return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), label: shortenPlaceName(r.display_name) };
+}
+async function reverseGeocode(lat, lng){
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`;
+  const res = await fetch(url, { headers: { 'Accept-Language': state.lang } });
+  if (!res.ok) throw new Error('reverse geocode failed');
+  const data = await res.json();
+  const a = data.address || {};
+  const spot = a.neighbourhood || a.suburb || a.quarter || a.road;
+  const borough = a.city_district || a.borough || a.city;
+  if (spot && borough) return `${spot}, ${borough}`;
+  return spot || borough || t('currentLocationFallback');
+}
+function shortenPlaceName(displayName){
+  // Nominatim display_name is a long comma chain; keep the first two meaningful parts.
+  const parts = displayName.split(',').map(s => s.trim());
+  return parts.slice(0, 2).join(', ');
+}
+
+/* ================= Derived data ================= */
+function computedPlaces(){
+  return state.places
+    .map(p => ({ ...p, distMi: haversineMi(state.lat, state.lng, p.lat, p.lng) }))
+    .filter(p => p.distMi <= state.radiusMi && state.activeBuckets.has(p.bucket))
+    .sort((a,b) => a.distMi - b.distMi);
+}
+
+/* ================= Rendering: chrome ================= */
+function applyStaticTranslations(){
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const key = el.dataset.i;
+    const val = t(key);
+    if (typeof val === 'string') el.textContent = val;
+  });
+  document.querySelectorAll('[data-i-placeholder]').forEach(el => {
+    const val = t(el.dataset.iPlaceholder);
+    if (typeof val === 'string') el.placeholder = val;
+  });
+  document.title = 'Waypoint — NYC';
+  $('footerNote').textContent = t('footerNote');
+}
+
+function renderWeatherNow(){
+  const w = state.weather;
+  if (!w) return;
+  const meta = weatherMeta(w.current.weather_code);
+  $('weatherNow').innerHTML = `
+    <div class="icon">${meta.icon}</div>
+    <div>
+      <div class="temp">${Math.round(w.current.temperature_2m)}°F</div>
+      <div class="cond">${t('wx')[meta.key]} · ${Math.round(w.current.apparent_temperature)}°F</div>
+    </div>
+    <div class="meta">${t('updatedNow')}<br>${escapeHtml(state.locationLabel || t('currentLocationFallback'))}</div>
+  `;
+}
+
+function renderWeekStrip(){
+  const w = state.weather;
+  if (!w) return;
+  const days = w.daily.time;
+  const html = days.map((d, i) => {
+    const meta = weatherMeta(w.daily.weather_code[i]);
+    const dname = i === 0 ? (state.lang==='en'?'Today':state.lang==='es'?'Hoy':'Auj.') : new Date(d+'T12:00:00').toLocaleDateString(t('locale'), {weekday:'short'});
+    return `<div class="day-chip ${i===state.selectedDayIdx?'active':''} ${i===0?'today':''}" data-idx="${i}" tabindex="0" role="button" aria-pressed="${i===state.selectedDayIdx}">
+      <div class="dname">${dname}</div><div class="dicon">${meta.icon}</div><div class="dtemp">${Math.round(w.daily.temperature_2m_max[i])}°</div>
+    </div>`;
+  }).join('');
+  $('weekStrip').innerHTML = html;
+  document.querySelectorAll('.day-chip').forEach(el => {
+    el.addEventListener('click', () => { state.selectedDayIdx = parseInt(el.dataset.idx); renderDynamic(); });
+    el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); el.click(); }});
+  });
+  const dayName = state.selectedDayIdx === 0 ? '' : new Date(days[state.selectedDayIdx]+'T12:00:00').toLocaleDateString(t('locale'), {weekday:'long'});
+  $('listLabel').textContent = state.selectedDayIdx === 0 ? t('recommendedToday') : `${t('recommendedToday').replace(/today|hoy|aujourd'hui/i,'').trim()} ${dayName}`.trim();
+}
+
+/* ================= Map ================= */
+function initMap(){
+  if (state.map) return;
+  state.map = L.map('leafletMap', { zoomControl:true, attributionControl:true }).setView([40.758,-73.9855], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(state.map);
+}
+function userIcon(){
+  return L.divIcon({ className:'', html:'<div class="user-dot"></div>', iconSize:[16,16], iconAnchor:[8,8] });
+}
+function placeIcon(bucket){
+  return L.divIcon({
+    className:'',
+    html:`<div class="map-pin map-pin-${bucket}"><span>${BUCKET_ICON[bucket]}</span></div>`,
+    iconSize:[22,22], iconAnchor:[11,22], popupAnchor:[0,-20]
+  });
+}
+function syncMap(recenter){
+  if (!state.map || state.lat === null) return;
+  if (!state.userMarker){
+    state.userMarker = L.marker([state.lat, state.lng], {icon:userIcon(), zIndexOffset:1000}).addTo(state.map);
+  } else {
+    state.userMarker.setLatLng([state.lat, state.lng]);
+  }
+  const radiusM = state.radiusMi * 1609.34;
+  if (!state.radiusCircle){
+    state.radiusCircle = L.circle([state.lat, state.lng], { radius: radiusM, color:'#C9A227', weight:1.5, dashArray:'4,5', fillColor:'#C9A227', fillOpacity:0.05 }).addTo(state.map);
+  } else {
+    state.radiusCircle.setLatLng([state.lat, state.lng]);
+    state.radiusCircle.setRadius(radiusM);
+  }
+  if (recenter) state.map.setView([state.lat, state.lng], state.map.getZoom() < 12 ? 13 : state.map.getZoom());
+
+  state.placeMarkers.forEach(m => state.map.removeLayer(m));
+  state.placeMarkers = [];
+  computedPlaces().forEach(p => {
+    const marker = L.marker([p.lat, p.lng], { icon: placeIcon(p.bucket) })
+      .bindPopup(`<strong>${escapeHtml(p.name)}</strong><br>${t('cat')[p.category]||p.category} · ${p.distMi.toFixed(1)} mi`)
+      .addTo(state.map);
+    state.placeMarkers.push(marker);
+  });
+}
+
+/* ================= Activity list ================= */
+function renderActivityList(){
+  const w = state.weather;
+  const dayIdx = state.selectedDayIdx;
+  const meta = weatherMeta(w.daily.weather_code[dayIdx]);
+  const dayTempF = w.daily.temperature_2m_max[dayIdx];
+
+  const places = computedPlaces();
+  if (places.length === 0){
+    $('activityList').innerHTML = `<div class="empty">${t('emptyList')}</div>`;
+    return;
+  }
+  const withSuit = places.map(p => ({ ...p, suit: suitabilityFor(meta.bucket, dayTempF, p.bucket) }));
+  const order = {good:0, ok:1, caution:2};
+  withSuit.sort((a,b) => order[a.suit.tag]-order[b.suit.tag] || a.distMi-b.distMi);
+
+  $('activityList').innerHTML = withSuit.map(p => `
+    <div class="activity-card">
+      <div class="a-icon">${BUCKET_ICON[p.bucket]}</div>
+      <div class="a-body">
+        <div class="a-name">${escapeHtml(p.name)}</div>
+        <div class="a-cat">${t('cat')[p.category] || p.category}</div>
+        <div class="a-tags">
+          <span class="tag ${p.suit.tag}">${t(p.suit.key)}</span>
+          <span class="tag bucket-${p.bucket}">${t('bucket'+p.bucket.charAt(0).toUpperCase()+p.bucket.slice(1))}</span>
+        </div>
+      </div>
+      <div class="a-dist">${p.distMi.toFixed(1)} mi<small>${bearingLabel(state.lat,state.lng,p.lat,p.lng)}</small></div>
+    </div>
+  `).join('');
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderDynamic(){
+  renderWeatherNow();
+  renderWeekStrip();
+  syncMap(false);
+  renderActivityList();
+}
+
+/* ================= Filters ================= */
+$('bucketFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  const bucket = chip.dataset.bucket;
+  if (state.activeBuckets.has(bucket)){
+    if (state.activeBuckets.size === 1) return; // keep at least one active
+    state.activeBuckets.delete(bucket);
+    chip.classList.remove('active');
+  } else {
+    state.activeBuckets.add(bucket);
+    chip.classList.add('active');
+  }
+  syncMap(false);
+  renderActivityList();
+});
+$('radiusToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.radiusMi = Math.min(parseInt(btn.dataset.mi), MAX_RADIUS_MI);
+  document.querySelectorAll('#radiusToggle button').forEach(b => b.classList.toggle('active', b===btn));
+  syncMap(false);
+  renderActivityList();
+});
+
+/* ================= Language ================= */
+$('langToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.lang = btn.dataset.lang;
+  document.querySelectorAll('#langToggle button').forEach(b => b.classList.toggle('active', b===btn));
+  applyStaticTranslations();
+  if (state.weather) renderDynamic();
+});
+
+/* ================= Location flow ================= */
+async function loadForLocation(lat, lng, knownLabel, warnKey){
+  state.lat = lat; state.lng = lng;
+  state.lastFetchLat = lat; state.lastFetchLng = lng;
+  $('moveBanner').classList.remove('show');
+
+  const warnHtml = warnKey ? `<span class="err">${t(warnKey)}</span><br>` : '';
+  if (knownLabel){
+    state.locationLabel = knownLabel;
+    $('locStatus').innerHTML = `${warnHtml}${t('located')}<br><span class="val">${escapeHtml(knownLabel)}</span>`;
+  } else {
+    state.locationLabel = null;
+    $('locStatus').innerHTML = `<span class="val">${t('resolvingLocation')}</span>`;
+    reverseGeocode(lat, lng).then(label => {
+      state.locationLabel = label;
+      $('locStatus').innerHTML = `${t('located')}<br><span class="val">${escapeHtml(label)}</span>`;
+      if (state.weather) renderWeatherNow();
+    }).catch(() => { state.locationLabel = t('currentLocationFallback'); });
+  }
+
+  $('weatherNow').innerHTML = `<div class="loading">${t('readingSky')}</div>`;
+  $('activityList').innerHTML = `<div class="loading">${t('scouting')}</div>`;
+  initMap();
+  try{
+    const [w, places] = await Promise.all([ fetchWeather(lat,lng), fetchPlaces(lat,lng,MAX_RADIUS_MI) ]);
+    state.weather = w; state.places = places;
+    renderDynamic();
+    syncMap(true);
+    startWatch();
+  } catch(err){
+    $('weatherNow').innerHTML = `<div class="error">${t('errorWeather')}</div>`;
+    $('activityList').innerHTML = `<div class="error">${t('errorPlaces')}</div>`;
+    console.error(err);
+  }
+}
+
+function startWatch(){
+  if (!navigator.geolocation || state.watchId !== null) return;
+  state.watchId = navigator.geolocation.watchPosition(
+    pos => {
+      const {latitude, longitude} = pos.coords;
+      if (!inNYC(latitude, longitude)) return; // stay within NYC scope
+      state.lat = latitude; state.lng = longitude;
+      syncMap(true);
+      const moved = haversineMi(latitude, longitude, state.lastFetchLat, state.lastFetchLng);
+      if (moved > 0.3) $('moveBanner').classList.add('show');
+    },
+    () => {},
+    { enableHighAccuracy:false, maximumAge:30000, timeout:15000 }
+  );
+}
+$('refreshBtn').addEventListener('click', () => loadForLocation(state.lat, state.lng, state.locationLabel));
+$('recenterBtn').addEventListener('click', () => { if (state.map && state.lat!==null) state.map.setView([state.lat,state.lng], 14); });
+
+function locate(){
+  $('locStatus').textContent = t('locating');
+  if (!navigator.geolocation){
+    $('locStatus').innerHTML = `<span class="err">${t('denied')}</span>`;
+    showManual();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const {latitude, longitude} = pos.coords;
+      if (!inNYC(latitude, longitude)){
+        loadForLocation(DEMO_LOCATION.lat, DEMO_LOCATION.lng, DEMO_LOCATION.label, 'outsideNyc');
+        return;
+      }
+      loadForLocation(latitude, longitude);
+    },
+    () => { $('locStatus').innerHTML = `<span class="err">${t('denied')}</span>`; showManual(); },
+    { timeout: 8000 }
+  );
+}
+function showManual(){ $('manualEntry').classList.add('show'); }
+
+$('locateBtn').addEventListener('click', locate);
+$('manualBtn').addEventListener('click', showManual);
+$('demoBtn').addEventListener('click', () => loadForLocation(DEMO_LOCATION.lat, DEMO_LOCATION.lng, DEMO_LOCATION.label));
+async function submitAddressSearch(){
+  const query = $('manQuery').value.trim();
+  if (!query) return;
+  $('locStatus').innerHTML = `<span class="val">${t('findingPlace')}</span>`;
+  try{
+    const result = await geocodeQuery(query);
+    if (!result || !inNYC(result.lat, result.lng)){
+      $('locStatus').innerHTML = `<span class="err">${t('notFound')}</span>`;
+      return;
+    }
+    loadForLocation(result.lat, result.lng, result.label);
+  } catch(err){
+    $('locStatus').innerHTML = `<span class="err">${t('notFound')}</span>`;
+    console.error(err);
+  }
+}
+$('manualGo').addEventListener('click', submitAddressSearch);
+$('manQuery').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); submitAddressSearch(); } });
+
+/* ================= Init ================= */
+applyStaticTranslations();
+locate();
+</script>
+</body>
+</html>
