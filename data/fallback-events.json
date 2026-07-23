@@ -1,0 +1,92 @@
+[
+  {
+    "id": "fb-indoor-1",
+    "name": "Jazz Night at the Blue Note",
+    "lat": 40.7308,
+    "lng": -74.0007,
+    "isIndoor": true,
+    "startTime": "2026-07-22T23:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7308,-74.0007"
+  },
+  {
+    "id": "fb-indoor-2",
+    "name": "Broadway: Hamilton",
+    "lat": 40.7590,
+    "lng": -73.9845,
+    "isIndoor": true,
+    "startTime": "2026-07-23T00:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7590,-73.9845"
+  },
+  {
+    "id": "fb-indoor-3",
+    "name": "MoMA After Dark Gallery Tour",
+    "lat": 40.7614,
+    "lng": -73.9776,
+    "isIndoor": true,
+    "startTime": "2026-07-22T22:30:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7614,-73.9776"
+  },
+  {
+    "id": "fb-indoor-4",
+    "name": "Comedy Cellar Late Show",
+    "lat": 40.7304,
+    "lng": -74.0006,
+    "isIndoor": true,
+    "startTime": "2026-07-23T01:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7304,-74.0006"
+  },
+  {
+    "id": "fb-indoor-5",
+    "name": "Knicks vs. Celtics @ MSG",
+    "lat": 40.7505,
+    "lng": -73.9934,
+    "isIndoor": true,
+    "startTime": "2026-07-22T23:30:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7505,-73.9934"
+  },
+  {
+    "id": "fb-outdoor-1",
+    "name": "SummerStage Concert in Central Park",
+    "lat": 40.7712,
+    "lng": -73.9714,
+    "isIndoor": false,
+    "startTime": "2026-07-22T22:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7712,-73.9714"
+  },
+  {
+    "id": "fb-outdoor-2",
+    "name": "Brooklyn Bridge Park Food Festival",
+    "lat": 40.7003,
+    "lng": -73.9967,
+    "isIndoor": false,
+    "startTime": "2026-07-22T20:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7003,-73.9967"
+  },
+  {
+    "id": "fb-outdoor-3",
+    "name": "Hudson River Kayak Meetup",
+    "lat": 40.7484,
+    "lng": -74.0084,
+    "isIndoor": false,
+    "startTime": "2026-07-22T19:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7484,-74.0084"
+  },
+  {
+    "id": "fb-outdoor-4",
+    "name": "Bryant Park Outdoor Movie Night",
+    "lat": 40.7536,
+    "lng": -73.9832,
+    "isIndoor": false,
+    "startTime": "2026-07-23T00:30:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.7536,-73.9832"
+  },
+  {
+    "id": "fb-outdoor-5",
+    "name": "Coney Island Boardwalk Fair",
+    "lat": 40.5749,
+    "lng": -73.9857,
+    "isIndoor": false,
+    "startTime": "2026-07-22T21:00:00Z",
+    "url": "https://www.google.com/maps/dir/?api=1&destination=40.5749,-73.9857"
+  }
+]
