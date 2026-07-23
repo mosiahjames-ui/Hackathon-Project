@@ -44,3 +44,42 @@ Open http://localhost:3000.
 - `npm run dev` — start the dev server
 - `npm run build` — production build
 - `npm start` — run the production build
+
+## Deployment
+
+This app has server-side API routes, so it needs a Node/serverless host (not a
+static-only host like GitHub Pages). The app lives in the `weather-events-app/`
+subfolder, so set the project's **Root Directory** to `weather-events-app`.
+
+Set `OPENWEATHER_API_KEY` and `TICKETMASTER_API_KEY` in the host's environment.
+Geolocation only works over HTTPS (all hosts below provide it automatically).
+
+### Vercel
+
+Dashboard: import the GitHub repo at [vercel.com/new](https://vercel.com/new),
+set **Root Directory** to `weather-events-app`, add the two env vars, deploy.
+
+CLI:
+
+```bash
+cd weather-events-app
+npx vercel                       # link/create project, choose this folder as root
+npx vercel env add OPENWEATHER_API_KEY
+npx vercel env add TICKETMASTER_API_KEY
+npx vercel --prod                # production deploy
+```
+
+### Docker / self-host
+
+Uses Next.js `output: "standalone"` for a small image.
+
+```bash
+cd weather-events-app
+docker build -t weatherevents .
+docker run -p 3000:3000 \
+  -e OPENWEATHER_API_KEY=your_key \
+  -e TICKETMASTER_API_KEY=your_key \
+  weatherevents
+```
+
+The same build works on Render, Railway, Fly.io, or any VPS.
